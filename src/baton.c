@@ -1,3 +1,7 @@
+// Author: Rayanne Souza
+// Last modification: 14 Sep 2018
+//
+
 #include<pthread.h>
 #include<semaphore.h>
 #include<stdio.h>
