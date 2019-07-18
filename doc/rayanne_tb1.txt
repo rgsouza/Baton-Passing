@@ -1,0 +1,191 @@
+Rayanne Souza  
+
+N_produtores: primeiro parâmetro
+N_consumidores: segundo parâmetro
+
+No desenvolvimento assume-se as seguintes premissas:
+
+1. O produtor e consumidor não podem acessar o buffer ao mesmo tempo para evitar que o consumidor leia um dado não atualizado.
+2. No processo de produção dos dados, apenas um único produtor acessa o buffer para escrita.
+3. O produtor aguarda se não há espaço no buffer para escrita.
+4. Quando para um certo consumidor não há mais elementos para consumir e ainda há produtores para escrever no buffer, este aguarda.
+
+
+ - Código produtor:
+
+Atendendo ao item 2, uma única thread executa os n_produtores dentro de um for. Quando um produtor adquire o bastão este verifica se não há nenhum consumidor acessando o buffer e se o buffer tem espaço para uma nova escrita. Caso essa condição não seja satisfeita, o produtor libera o bastão depois de incrementar a variável que indica a presença de um produtor em espera. Além disso, se essa condição não está satisfeita porque o buffer está cheio, uma variável booleana é setada para 1, indicando que o produtor está à espera de um lugar no buffer. Essa variável booleana volta a ser 0 depois que todos os consumidores tiverem consumido um dado para a ser liberado do buffer.  
+
+Quando a condição inicial está satisfeita ou quando o buffer recebe o bastão, ele seta uma variável que indica que há um produtor no buffer, libera o bastão e produz um dado. A indicação de que há um produtor no buffer é usada pelo consumidor para evitar que os consumidores que pegarem o bastão acessem o buffer. Após a escrita ele aguarda o bastão para poder atualizar a variável indicadora da presença do produtor e o número de posições vazias no buffer. Essas variáveis são atualizadas quando o produtor adquire o bastão para evitar ocorrência de condição de corrida pois são variáveis acessadas pelos consumidores.
+
+Ao final, se há um consumidor em espera, o produtor passa o bastão para algum consumidor. Caso na espera haja algum consumidor aguardando devido a falta de elementos para consumir, o produtor seta uma variável booleana para indicar que um novo dado foi produzido. O uso dessa variável booleana permite "jogar para o final da fila" um consumidor que estava aguardando a produção de um novo elemento mas que recebeu o bastão, de um outro consumidor, antes da produção desse elemento. Caso não haja nenhum consumidor na espera, o produtor libera o bastão permitindo a entrada de um consumidor ou um novo produtor. 
+
+
+-Código consumidor:
+
+Dado que todos os consumidores precisam ler os dados produzidos por todos os produtores, cada consumidor é executado n vezes, onde n corresponde ao número de produtores. Quando um consumidor adquire o bastão, ele verifica se há um consumidor ou um produtor acessando o buffer e se o número de elementos para ele adquirir é zero.  Caso uma dessas condições sejam verdadeiras, ele incrementa o número de consumidores em espera, libera o bastão e espera a recepção de um bastão pelo produtor ou por um outro consumidor. Caso esse consumidor esteja em espera devido a falta de elementos para consumir, ele seta a variável booleana explicada no parágrafo anterior. 
+
+Quando o consumidor recebe o bastão, é necessário verificar se há algum consumidor em espera por causa da falta de elementos para consumir. Se houver, verifica-se se esse consumidor que pegou o bastão está na espera por elementos. Caso esteja, ele volta para o final da fila e passa o bastão para outro consumidor, se houver, ou para um produtor, se houver, ou então libera o bastão. 
+
+Depois que o consumidor consegue acessar o buffer, ele o lê e aguarda que o bastão seja liberado. Após adquirir o bastão, ele atualiza as variáveis de controle, o seu index no buffer, verifica se é o último a ler o elemento para liberar uma posição do buffer e passa o bastão para o produtor, se houver um produtor em espera, ou para um consumidor, se houver um consumidor em espera, ou libera o bastão. 
+ 
+
+Teste 
+Para validar a ordem de leitura do consumidor, um vetor com tamanho igual ao número de produtores armazena os valores escritos pelos produtores. Por questões de praticidade, cada produtor produz um número correspondente a sua ordem de entrada, isto é, produtor 1 produz o valor 1, produtor 2 produz o valor 2 e assim sucessivamente.  Uma matriz de tamanho n_consumidores x n_produtores armazena para cada consumidor os valores consumidos. Depois que todas as threads terminam sua execução,  uma assertiva, (assert(consumed[i][j] == vproduced[j])), verifica para cada linha se todas as colunas são iguais ao vetor dos produtores. Além disso, no final da execução de cada consumidor é exibido na tela a soma total de todos os elementos por ele consumidos. O texto abaixo corresponde a saída para 12 produtores e 10 consumidores. Para validar o programa realizou-se teste nos cenarios: "numero de produtores maior que o tamanho do buffer limitado (> 10) e maior que o numero de consumidores, numero de produtores menor que o numero de consumidores e maior que o tamanho do buffer, numero de produtores menor que o tamanho do buffer e menor que o numero de consumidores, numero de produtores menor que o tamanho do buffer e maior que o numero de consumidores.  
+
+ 
+Producer 1 generates 1 
+PRODUCER 1 FINISHED
+Consumer 0 gets 1 
+Producer 2 generates 2 
+PRODUCER 2 FINISHED
+Consumer 1 gets 1 
+Producer 3 generates 3 
+PRODUCER 3 FINISHED
+Consumer 2 gets 1 
+Producer 4 generates 4 
+PRODUCER 4 FINISHED
+Consumer 0 gets 2 
+Producer 5 generates 5 
+PRODUCER 5 FINISHED
+Consumer 3 gets 1 
+Producer 6 generates 6 
+PRODUCER 6 FINISHED
+Consumer 4 gets 1 
+Producer 7 generates 7 
+PRODUCER 7 FINISHED
+Consumer 6 gets 1 
+Producer 8 generates 8 
+PRODUCER 8 FINISHED
+Consumer 7 gets 1 
+Producer 9 generates 9 
+PRODUCER 9 FINISHED
+Consumer 9 gets 1 
+Producer 10 generates 10 
+PRODUCER 10 FINISHED
+Consumer 8 gets 1 
+Consumer 2 gets 2 
+Consumer 0 gets 3 
+Consumer 3 gets 2 
+Consumer 1 gets 2 
+Consumer 5 gets 1 
+Producer 11 generates 11 
+PRODUCER 11 FINISHED
+Consumer 4 gets 2 
+Consumer 6 gets 2 
+Consumer 7 gets 2 
+Consumer 9 gets 2 
+Consumer 8 gets 2 
+Consumer 2 gets 3 
+Consumer 0 gets 4 
+Consumer 3 gets 3 
+Consumer 1 gets 3 
+Consumer 5 gets 2 
+Producer 12 generates 12 
+PRODUCER 12 FINISHED
+Consumer 4 gets 3 
+Consumer 6 gets 3 
+Consumer 9 gets 3 
+Consumer 8 gets 3 
+Consumer 2 gets 4 
+Consumer 7 gets 3 
+Consumer 0 gets 5 
+Consumer 3 gets 4 
+Consumer 1 gets 4 
+Consumer 5 gets 3 
+Consumer 4 gets 4 
+Consumer 6 gets 4 
+Consumer 9 gets 4 
+Consumer 8 gets 4 
+Consumer 2 gets 5 
+Consumer 7 gets 4 
+Consumer 0 gets 6 
+Consumer 3 gets 5 
+Consumer 1 gets 5 
+Consumer 5 gets 4 
+Consumer 4 gets 5 
+Consumer 6 gets 5 
+Consumer 9 gets 5 
+Consumer 8 gets 5 
+Consumer 2 gets 6 
+Consumer 7 gets 5 
+Consumer 0 gets 7 
+Consumer 3 gets 6 
+Consumer 1 gets 6 
+Consumer 5 gets 5 
+Consumer 4 gets 6 
+Consumer 6 gets 6 
+Consumer 9 gets 6 
+Consumer 8 gets 6 
+Consumer 2 gets 7 
+Consumer 7 gets 6 
+Consumer 0 gets 8 
+Consumer 3 gets 7 
+Consumer 1 gets 7 
+Consumer 5 gets 6 
+Consumer 4 gets 7 
+Consumer 6 gets 7 
+Consumer 9 gets 7 
+Consumer 8 gets 7 
+Consumer 2 gets 8 
+Consumer 7 gets 7 
+Consumer 0 gets 9 
+Consumer 3 gets 8 
+Consumer 1 gets 8 
+Consumer 5 gets 7 
+Consumer 4 gets 8 
+Consumer 6 gets 8 
+Consumer 9 gets 8 
+Consumer 8 gets 8 
+Consumer 2 gets 9 
+Consumer 7 gets 8 
+Consumer 0 gets 10 
+Consumer 3 gets 9 
+Consumer 0 gets 11 
+Consumer 1 gets 9 
+Consumer 4 gets 9 
+Consumer 6 gets 9 
+Consumer 9 gets 9 
+Consumer 8 gets 9 
+Consumer 2 gets 10 
+Consumer 7 gets 9 
+Consumer 3 gets 10 
+Consumer 5 gets 8 
+Consumer 0 gets 12 
+CONSUMER 0 ENDED WITH TOTAL 78
+Consumer 1 gets 10 
+Consumer 4 gets 10 
+Consumer 6 gets 10 
+Consumer 4 gets 11 
+Consumer 8 gets 10 
+Consumer 2 gets 11 
+Consumer 7 gets 10 
+Consumer 3 gets 11 
+Consumer 5 gets 9 
+Consumer 1 gets 11 
+Consumer 6 gets 11 
+Consumer 9 gets 10 
+Consumer 4 gets 12 
+CONSUMER 4 ENDED WITH TOTAL 78
+Consumer 8 gets 11 
+Consumer 2 gets 12 
+CONSUMER 2 ENDED WITH TOTAL 78
+Consumer 7 gets 11 
+Consumer 3 gets 12 
+CONSUMER 3 ENDED WITH TOTAL 78
+Consumer 5 gets 10 
+Consumer 1 gets 12 
+CONSUMER 1 ENDED WITH TOTAL 78
+Consumer 6 gets 12 
+CONSUMER 6 ENDED WITH TOTAL 78
+Consumer 9 gets 11 
+Consumer 8 gets 12 
+CONSUMER 8 ENDED WITH TOTAL 78
+Consumer 7 gets 12 
+CONSUMER 7 ENDED WITH TOTAL 78
+Consumer 5 gets 11 
+Consumer 9 gets 12 
+CONSUMER 9 ENDED WITH TOTAL 78
+Consumer 5 gets 12 
+CONSUMER 5 ENDED WITH TOTAL 78
+
+
